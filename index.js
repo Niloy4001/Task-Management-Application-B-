@@ -34,7 +34,14 @@ async function run() {
 
     app.post("/tasks", async (req, res) => {
       const task = req.body;
-      task.order = (await tasksCollection.countDocuments()) + 1;
+    
+     
+      const lastTask = await tasksCollection.find().sort({ order: -1 }).limit(1).toArray();
+      const lastOrder = lastTask.length > 0 ? lastTask[0].order : 0;
+    
+     
+      task.order = lastOrder + 1;
+    
       const result = await tasksCollection.insertOne(task);
       res.send(result);
     });
