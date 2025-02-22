@@ -34,6 +34,7 @@ async function run() {
 
     app.post("/tasks", async (req, res) => {
       const task = req.body;
+      task.order = (await tasksCollection.countDocuments()) + 1;
       const result = await tasksCollection.insertOne(task);
       res.send(result);
     });
@@ -84,16 +85,62 @@ async function run() {
           $set:{
             category: whereToDrop,
           }
-        }  
+        }
         const result = await tasksCollection.updateOne(filter,updateDoc);
         res.send(result)
       }
-      
 
       console.log(id);
       console.log(whereToDrop);
-      
+
     })
+
+    app.patch("/reorder", async (req, res) => {
+      const { draggedId, draggedOrder, droppedId, droppedOrder } = req.body;
+
+      // set dragged item order to dropped item order
+      const draggedFilter = { _id: new ObjectId(draggedId) };
+      const draggedUpdatedDoc = {
+        $set: { order: droppedOrder },
+      };
+      const result1 = await tasksCollection.updateOne(
+        draggedFilter,
+        draggedUpdatedDoc
+      );
+
+      // set dropped item order to dragged item order
+      const droppedFilter = { _id: new ObjectId(droppedId) };
+      const droppedUpdatedDoc = {
+        $set: { order: draggedOrder },
+      };
+      const result2 = await tasksCollection.updateOne(
+        droppedFilter,
+        droppedUpdatedDoc
+      );
+
+      // console.log(draggedId, draggedOrder, droppedId, droppedOrder);
+      res.send({ result1, result2 });
+    });
+
+
+
+    app.patch("/changeCategory", async (req, res) => {
+      const { draggedId, droppedCategory } = req.body;
+
+      // set dragged item order to dropped item order
+      const draggedFilter = { _id: new ObjectId(draggedId) };
+      const draggedUpdatedDoc = {
+        $set: { category: droppedCategory },
+      };
+      const result = await tasksCollection.updateOne(
+        draggedFilter,
+        draggedUpdatedDoc
+      );
+
+      
+      // console.log(draggedId, draggedOrder, droppedId, droppedOrder);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
@@ -109,6 +156,3 @@ run().catch(console.log);
 app.listen(port, () => {
   console.log(`our server is running on port ${port}`);
 });
-
-
-
